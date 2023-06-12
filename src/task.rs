@@ -15,7 +15,7 @@ pub struct ShearTask {
     angle: f64,
     max_width: u32,
     max_height: u32,
-    origin: DynamicImage,
+    origin: Arc<Mutex<DynamicImage>>,
     destiny: Arc<Mutex<ImageBuffer<Rgba<u8>, Vec<u8>>>>,
 }
 pub struct PoisonPill;
@@ -30,7 +30,7 @@ impl ShearTask {
         angle: f64,
         max_width: u32,
         max_height: u32,
-        origin: DynamicImage,
+        origin: Arc<Mutex<DynamicImage>>,
         destiny: Arc<Mutex<ImageBuffer<Rgba<u8>, Vec<u8>>>>,
     ) -> Self {
         Self {
@@ -73,7 +73,8 @@ impl Task for ShearTask {
                 && y_final < self.max_height as i32
             {
                 let mut destiny = self.destiny.lock().unwrap();
-                let pixel = self.origin.get_pixel(x as u32, self.row as u32).clone();
+                let origin = self.origin.lock().unwrap();
+                let pixel = origin.get_pixel(x as u32, self.row as u32).clone();
                 destiny.put_pixel(x_final as u32, y_final as u32, pixel);
             }
         }

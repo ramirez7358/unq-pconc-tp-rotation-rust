@@ -7,7 +7,7 @@ use image::ImageBuffer;
 
 use crate::{pool::ThreadPool, task::ShearTask};
 
-const REGION_SIZE: i32 = 100;
+const REGION_SIZE: i32 = 200;
 
 pub struct Rotator {
     image_path: String,
@@ -19,31 +19,37 @@ impl Rotator {
     }
 
     pub fn run(&self) {
-        let origin = image::open(self.image_path.as_str()).unwrap();
-        let destiny = Arc::new(Mutex::new(ImageBuffer::new(
-            origin.width(),
-            origin.height(),
-        )));
+        let origin_arc: Arc<Mutex<image::DynamicImage>> =
+            Arc::new(Mutex::new(image::open(self.image_path.as_str()).unwrap()));
+
+        let width;
+        let height;
+        {
+            let origin = origin_arc.lock().unwrap();
+            width = origin.width();
+            height = origin.height();
+        }
+        let destiny = Arc::new(Mutex::new(ImageBuffer::new(width, height)));
 
         let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let mut thread_pool = ThreadPool::new(2, 2);
+        let mut thread_pool = ThreadPool::new(64, 16);
 
-        let regions_per_row = (origin.width() as f32 / REGION_SIZE as f32).ceil() as i32;
+        let regions_per_row = (width as f32 / REGION_SIZE as f32).ceil() as i32;
 
-        for row in 0..origin.height() {
+        for row in 0..height {
             for x in 0..regions_per_row {
                 let start = x * REGION_SIZE;
-                let end = (start + REGION_SIZE).min(origin.width() as i32);
+                let end = (start + REGION_SIZE).min(width as i32);
                 let task = ShearTask::new(
                     row as i32,
                     start,
                     end,
-                    (origin.width() / 2) as i32,  // hardcode
-                    (origin.height() / 2) as i32, // hardcode
-                    (45 as f64).to_radians(),     // hardcode
-                    origin.width(),
-                    origin.height(),
-                    origin.clone(),
+                    (width / 2) as i32,       // hardcode
+                    (height / 2) as i32,      // hardcode
+                    (45 as f64).to_radians(), // hardcode
+                    width,
+                    height,
+                    Arc::clone(&origin_arc),
                     Arc::clone(&destiny),
                 );
                 thread_pool.add_task(Box::new(task));
