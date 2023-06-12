@@ -56,15 +56,17 @@ impl Task for PoisonPill {
 
 impl Task for ShearTask {
     fn run(&self) -> Result<(), &'static str> {
+        let sin_angle = self.angle.sin();
+        let tan_half_angle = (self.angle / 2.0).tan();
+        let mut destiny = self.destiny.lock().unwrap();
+        let origin = self.origin.lock().unwrap();
         for x in self.start..self.end {
-            let x_tmp = ((self.angle / 2.0).tan() * (self.row - self.pivot_y) as f64 + x as f64)
-                .round() as i32;
-            let y_final = ((-self.angle.sin()) * (x_tmp - self.pivot_x) as f64 + self.row as f64)
-                .round() as i32
-                - 1;
-            let x_final = ((self.angle / 2.0).tan() * (y_final - self.pivot_y) as f64
-                + x_tmp as f64)
-                .round() as i32
+            let x_tmp =
+                (tan_half_angle * (self.row - self.pivot_y) as f64 + x as f64).round() as i32;
+            let y_final =
+                ((-sin_angle) * (x_tmp - self.pivot_x) as f64 + self.row as f64).round() as i32 - 1;
+            let x_final = (tan_half_angle * (y_final - self.pivot_y) as f64 + x_tmp as f64).round()
+                as i32
                 + 1;
 
             if x_final >= 0
@@ -72,8 +74,6 @@ impl Task for ShearTask {
                 && y_final >= 0
                 && y_final < self.max_height as i32
             {
-                let mut destiny = self.destiny.lock().unwrap();
-                let origin = self.origin.lock().unwrap();
                 let pixel = origin.get_pixel(x as u32, self.row as u32).clone();
                 destiny.put_pixel(x_final as u32, y_final as u32, pixel);
             }
