@@ -1,19 +1,14 @@
-use std::sync::{Mutex, Condvar, MutexGuard};
+use std::sync::{Condvar, Mutex, MutexGuard};
 
 pub struct Buffer<T> {
-    capacity: usize,
+    pub capacity: usize,
     data: Mutex<Vec<T>>,
-    condvar: Condvar
-}
-
-pub struct WorkerCounter {
-    counter: Mutex<u8>,
-    condvar: Condvar
+    condvar: Condvar,
 }
 
 impl<T> Buffer<T> {
     pub fn new(capacity: usize) -> Self {
-        Self { 
+        Self {
             capacity,
             data: Mutex::new(Vec::with_capacity(capacity)),
             condvar: Condvar::new(),
@@ -27,7 +22,7 @@ impl<T> Buffer<T> {
         }
 
         data.push(value);
-        self.condvar.notify_all();
+        self.condvar.notify_one();
     }
 
     pub fn read(&self) -> T {
@@ -36,8 +31,8 @@ impl<T> Buffer<T> {
             data = self.condvar.wait(data).unwrap();
         }
 
-        let task = data.pop().unwrap();
-        self.condvar.notify_all();
+        let task = data.remove(0);
+        self.condvar.notify_one();
         task
     }
 
@@ -47,33 +42,5 @@ impl<T> Buffer<T> {
 
     pub fn is_empty(&self, data: &MutexGuard<Vec<T>>) -> bool {
         data.is_empty()
-    }
-}
-
-impl WorkerCounter {
-    pub fn new() -> Self{
-        Self { counter: Mutex::new(0), condvar: Condvar::new() }
-    }
-
-    pub fn increase(&self) {
-        let mut counter = self.counter.lock().unwrap();
-        *counter += 1;
-        self.condvar.notify_all();
-    }
-
-    pub fn decrease(&self) {
-        let mut counter = self.counter.lock().unwrap();
-        while *counter == 0 {
-            counter = self.condvar.wait(counter).unwrap();
-        }
-        *counter -= 1;
-        self.condvar.notify_all();
-    }
-
-    pub fn wait_all_workers_idle(&self) {
-        let mut counter = self.counter.lock().unwrap();
-        while *counter > 0 {
-            counter = self.condvar.wait(counter).unwrap();
-        }
     }
 }
