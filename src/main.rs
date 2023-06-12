@@ -3,6 +3,7 @@ use std::{sync::Arc, thread};
 use monitors::Buffer;
 
 pub mod monitors;
+pub mod pool;
 
 fn main() {
     let buffer = Arc::new(Buffer::new(1));
