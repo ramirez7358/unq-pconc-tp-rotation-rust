@@ -50,8 +50,8 @@ impl Rotator {
                     end_y,
                     start_x,
                     end_x,
-                    (width / 2) as i32,       // hardcode
-                    (height / 2) as i32,      // hardcode
+                    (width / 2) as i32,        // hardcode
+                    (height / 2) as i32,       // hardcode
                     (-45 as f64).to_radians(), // hardcode
                     width,
                     height,
@@ -62,26 +62,6 @@ impl Rotator {
                 thread_pool.add_task(Box::new(task));
             }
         }
-
-        /*for row in 0..height {
-            for x in 0..regions_per_row {
-                let start = x * REGION_SIZE;
-                let end = (start + REGION_SIZE).min(width as i32);
-                let task = ShearTask::new(
-                    row as i32,
-                    start,
-                    end,
-                    (width / 2) as i32,       // hardcode
-                    (height / 2) as i32,      // hardcode
-                    (45 as f64).to_radians(), // hardcode
-                    width,
-                    height,
-                    Arc::clone(&origin_arc),
-                    Arc::clone(&destiny),
-                );
-                thread_pool.add_task(Box::new(task));
-            }
-        }*/
 
         thread_pool.wait_for_workers_to_finish();
         destiny.lock().unwrap().save("./output.jpg").unwrap();
